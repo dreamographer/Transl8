@@ -11,34 +11,132 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,900;1,200&family=Poppins:wght@100;400;700;800;900&family=Tenor+Sans&display=swap" rel="stylesheet">
-<title>Translator</title>
+  <title>Translator</title>
 </head>
 
-<body class="bg-[#c5c3c6] font-[Montserrat] ">
-    <div class="text-center mt-32 flex justify-center" >
-        <h1 class="text-[#46494c] font-black text-8xl " style="font-family: Tenor Sans;">TRANSL<span>8</span></h1>
-        <lottie-player src="asset/lottie/Animation - 1700070412040.json" background="transparent" speed="1" class="w-44 -mt-10 -ml-7" autoplay loop></lottie-player>
+<body class="bg-[#c5c3c6]  font-[Montserrat] overflow-x-hidden w-screen">
+  <div class="text-center md:mt-32 mt-2 md:flex-row flex flex-col justify-center">
+    <h1 class="text-[#46494c] font-black text-6xl md:text-8xl order-2 md:order-1" style="font-family: Tenor Sans;">TRANSL<span>8</span></h1>
+    <div class="md:w-[]  flex justify-center order-1 ">
+      <lottie-player src="asset/lottie/Animation - 1700070412040.json" background="transparent" speed="1" class="w-52 md:-mt-10 -ml-7" autoplay loop></lottie-player>
     </div>
-    <div class="w-screen m-5 flex justify-center font-[poppins]">
-        <select name="target" id="target" class="rounded-sm focus:outline-none">
-            <option value="ml">Malayalam</option>
-            <option value="en">English</option>
-            <option value="hi">Hindi</option>
-            <option value="kn">Kannada</option>
-            <option value="ta">Tamil</option>
-            <option value="te">Telugu</option>
-            <option value="bn">Bengali</option>
-            <option value="pa">Punjabi</option>
-        </select>
+  </div>
+
+  <div class="md:flex w-screen gap-2 mt-5 justify-around ">
+    <div class="flex  justify-center mb-5 md:w-[40%]">
+      <input type="text" id="input" class="rounded-2xl bg-[] pl-10 md:w-full w-[80%]  h-52 border-none focus:outline-none">
     </div>
-    <div class="flex w-screen gap-2 justify-center">
-        <div class="flex md:block justify-center w-[80vw] md:w-[40%]">
-        <input type="text" class="rounded-2xl bg-[] pl-10 w-full h-52 border-none focus:outline-none">
-        </div>
-        <div class="flex md:block justify-center w-screen w-[80vw] md:w-[40%]">
-            <input type="text" class="bg-[#dcdcdd] rounded-2xl w-full h-52 border-none focus:outline-none">
-            </div>
+    <div class="m-5 h-8  flex justify-center font-[poppins]">
+      <select name="target" id="target" class="rounded-sm focus:outline-none">
+        <option value="ml" selected>Malayalam</option>
+        <option value="en">English</option>
+        <option value="hi">Hindi</option>
+        <option value="kn">Kannada</option>
+        <option value="ta">Tamil</option>
+        <option value="te">Telugu</option>
+        <option value="bn">Bengali</option>
+        <option value="pa">Punjabi</option>
+      </select>
     </div>
+    <div class="flex  justify-center items-center bg-[#dcdcdd] rounded-2xl w-[80%] mx-auto md:mx-0 h-52 md:w-[40%]">
+      <p  id="result" class=""></p>
+    </div>
+  </div>
 </body>
+
+<!-- Detect LAnguage -->
+<script>
+    
+  let input = document.getElementById("input")
+  let resultBox= document.getElementById("result")
+  let selection=document.getElementById('target')
+  selection.addEventListener('change', debounce(handleSearch, 2000));
+//   input.addEventListener('input', debounce(handleSearch, 2000)); //debounce function to reduce api request
+  let timeoutId;
+  function debounce(func, delay) {
+      return function() {
+        const context = this;
+        const args = arguments;
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          func.apply(context, args);
+        }, delay);
+      };
+    }
+// {"data":{"translations":[{"translatedText":"ഹലോ"}]}}
+ async function handleSearch() {
+    try {
+        
+        let txt = input.value
+        if (txt.length<2) {
+            return
+        }
+        let source=await detectLanguage(txt)
+        let target=document.getElementById('target').value
+        let result= await Translate(txt,source,target);
+        resultBox.innerText=result.data.translations[0].translatedText
+        console.log(target,source,result.data.translations[0].translatedText);
+    } catch (error) {
+        console.log(error);
+    }
+  }
+  async function detectLanguage(text) {
+    const url = 'https://google-translate1.p.rapidapi.com/language/translate/v2/detect';
+    const options = {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+        'Accept-Encoding': 'application/gzip',
+        'X-RapidAPI-Key': 'd969945dffmsha92afcf91ff4298p1a1b71jsn6f5bd7995c0a',
+        'X-RapidAPI-Host': 'google-translate1.p.rapidapi.com'
+      },
+      body: new URLSearchParams({
+        q: text
+      })
+    };
+
+    try {
+      const response = await fetch(url, options);
+      const result = await response.json();
+    //   console.log(result.data.detections[0][0].language);
+      return result.data.detections[0][0].language
+    } catch (error) {
+      console.error(error);
+    }
+  }
+</script>
+
+<!-- Translate -->
+<script>
+  async function Translate(txt,source,target) {
+
+    const url = 'https://google-translate1.p.rapidapi.com/language/translate/v2';
+    const options = {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+        'Accept-Encoding': 'application/gzip',
+        'X-RapidAPI-Key': 'd969945dffmsha92afcf91ff4298p1a1b71jsn6f5bd7995c0a',
+        'X-RapidAPI-Host': 'google-translate1.p.rapidapi.com'
+      },
+      body: new URLSearchParams({
+        q: txt,
+        target: target,
+        source: source
+      })
+    };
+
+    try {
+      const response = await fetch(url, options);
+      const result = await response.json();
+    //   console.log(result);
+      return result
+    } catch (error) {
+      console.error(error);
+    }
+  }
+</script>
+
+
 
 </html>
